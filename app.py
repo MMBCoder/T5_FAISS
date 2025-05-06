@@ -5,13 +5,17 @@ import faiss
 import numpy as np
 import PyPDF2
 
-# Initialize models
-@st.cache_resource
+# Initialize models with caching
+@st.cache_resource(show_spinner=False)
 def load_models():
-    embed_model = SentenceTransformer('all-MiniLM-L6-v2')
-    tokenizer = T5Tokenizer.from_pretrained('t5-base')
-    t5_model = T5ForConditionalGeneration.from_pretrained('t5-base')
-    return embed_model, tokenizer, t5_model
+    try:
+        embed_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2', cache_folder='./model_cache')
+        tokenizer = T5Tokenizer.from_pretrained('t5-base', cache_dir='./model_cache')
+        t5_model = T5ForConditionalGeneration.from_pretrained('t5-base', cache_dir='./model_cache')
+        return embed_model, tokenizer, t5_model
+    except Exception as e:
+        st.error(f"Model loading failed: {e}")
+        return None, None, None
 
 embed_model, tokenizer, t5_model = load_models()
 
@@ -47,6 +51,9 @@ def generate_response(query, context_docs):
 
 # Streamlit App
 st.title("📄 RAG-based GenAI App with FAISS & T5")
+
+if embed_model is None:
+    st.stop()
 
 uploaded_file = st.file_uploader("Upload a PDF file", type=['pdf'])
 
